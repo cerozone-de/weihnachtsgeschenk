@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Weihnachts-Jagd Deluxe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-gradient-start: #0F3024;
+            --bg-gradient-end: #051f15;
+            --wall-color: #144534; 
+            --accent-color: #d42426; 
+            --gold-color: #FFD700;
+        }
+        body {
+            background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: white;
+            /* NEU: Caveat Brush Schriftart */
+            font-family: 'Caveat Brush', cursive;
+            font-size: 22px; /* Etwas größer, da Caveat Brush kleiner wirkt */
+            text-align: center;
+            margin: 0;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none; 
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Überschriften */
+        h1 { margin: 0; font-size: 1.8rem; color: var(--gold-color); text-shadow: 2px 2px 0px #000; letter-spacing: 1px; }
+        h2 { font-size: 2rem; margin-bottom: 10px; }
+        
+        /* Fließtext in den Popups */
+        p {
+            font-size: 1.3rem; /* Gut lesbar auf Handy */
+            line-height: 1.3;
+        }
+
+        /* --- SCHNEE EFFEKT --- */
+        .snow-container {
+            position: absolute;
+            height: 100%; width: 100%;
+            top: 0; left: 0;
+            pointer-events: none;
+            z-index: 0; 
+            overflow: hidden;
+        }
+        .snow {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                radial-gradient(3px 3px at 50px 100px, #fff, transparent),
+                radial-gradient(4px 4px at 150px 20px, #fff, transparent),
+                radial-gradient(3px 3px at 250px 180px, #fff, transparent);
+            background-size: 400px 400px;
+            animation: snowAnim 10s linear infinite; 
+            opacity: 0.8;
+        }
+        .snow:nth-child(2) {
+            background-image: 
+                radial-gradient(4px 4px at 80px 30px, rgba(255,255,255,0.8), transparent),
+                radial-gradient(5px 5px at 300px 250px, rgba(255,255,255,0.8), transparent);
+            background-size: 300px 300px;
+            animation: snowAnim 15s linear infinite;
+            opacity: 0.6;
+        }
+        .snow:nth-child(3) {
+            background-image: 
+                radial-gradient(2px 2px at 10px 10px, rgba(255,255,255,0.9), transparent),
+                radial-gradient(2px 2px at 100px 200px, rgba(255,255,255,0.9), transparent);
+            background-size: 200px 200px;
+            animation: snowAnim 7s linear infinite; 
+        }
+        @keyframes snowAnim {
+            from { transform: translateY(-400px); }
+            to { transform: translateY(0px); }
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 95%;
+            max-width: 400px;
+            margin-bottom: 5px;
+            border-bottom: 2px solid var(--gold-color);
+            padding-bottom: 5px;
+            z-index: 2;
+        }
+        
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #lives-display { font-size: 1.4rem; text-shadow: 1px 1px 2px black;}
+        
+        #music-btn {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--gold-color);
+            color: var(--gold-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-family: Arial, sans-serif; /* Icons bleiben Standard */
+        }
+
+        #game-container {
+            position: relative;
+            width: fit-content;
+            margin: 0 auto;
+            border: 4px solid var(--gold-color);
+            border-radius: 10px;
+            background: #000; 
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            z-index: 2;
+        }
+        canvas { display: block; background: #000; border-radius: 6px; }
+
+        #pause-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            color: var(--gold-color);
+            font-size: 3rem;
+            font-weight: bold;
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 6px;
+        }
+        .hidden { display: none !important; }
+
+        /* --- STEUERUNG OPTIMIERT --- */
+        .controls {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 90px 90px 90px; 
+            grid-template-rows: 80px 80px;
+            gap: 40px 20px; 
+            justify-content: center;
+            z-index: 2;
+        }
+        .ctrl-btn {
+            background: var(--wall-color);
+            border: 2px solid var(--gold-color);
+            color: white;
+            font-size: 45px; 
+            border-radius: 20px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 0 #0a251a; 
+            font-family: Arial, sans-serif;
+        }
+        .ctrl-btn:active { 
+            background: var(--accent-color); 
+            transform: translateY(6px); 
+            box-shadow: none;
+        }
+
+        /* --- POPUP FENSTER --- */
+        .modal-screen {
+            display: none; 
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #f8f8f8;
+            color: var(--bg-gradient-start);
+            padding: 25px;
+            border: 4px solid var(--gold-color);
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            width: 90%; 
+            max-width: 380px; 
+            z-index: 100;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        
+        #start-screen { display: block; }
+
+        @media (max-width: 400px) {
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.8rem; margin-bottom: 10px; }
+            p { font-size: 1.2rem; margin: 8px 0; }
+            .modal-screen { padding: 15px; width: 88%; }
+            .controls { 
+                gap: 20px 10px; 
+                grid-template-columns: 80px 80px 80px; 
+                grid-template-rows: 70px 70px;
+            }
+             .ctrl-btn { font-size: 35px; }
+        }
+
+        .modal-btn {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            padding: 10px 25px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 1.5rem; /* Größere Schrift im Button */
+            border: 2px solid var(--gold-color);
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            font-family: 'Caveat Brush', cursive;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="snow-container">
+        <div class="snow"></div>
+        <div class="snow"></div>
+        <div class="snow"></div>
+    </div>
+
+    <div class="header-info">
+        <h1>Geschenke-Jagd</h1>
+        <div class="status-right">
+            <button id="music-btn" onclick="togglePause()">🔈</button>
+            <div id="lives-display">❤️❤️❤️</div>
+        </div>
+    </div>
+    
+    <div id="game-container">
+        <div id="pause-overlay" class="hidden">PAUSE</div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <div></div>
+        <button class="ctrl-btn" onpointerdown="movePlayer(0, -1)">⬆️</button>
+        <div></div>
+        <button class="ctrl-btn" onpointerdown="movePlayer(-1, 0)">⬅️</button>
+        <button class="ctrl-btn" onpointerdown="movePlayer(0, 1)">⬇️</button>
+        <button class="ctrl-btn" onpointerdown="movePlayer(1, 0)">➡️</button>
+    </div>
+
+    <div id="start-screen" class="modal-screen">
+        <h2 style="margin-top: 0; color: var(--accent-color);">Hallo Mausi! ❤️</h2>
+        <p>Wir haben hier ein Problem!</p>
+        <p>Die <b>zwei</b> Schneemänner haben den Geschenkebeutel zerrissen und nun sind alle Geschenke im Labyrinth verstreut.</p>
+        <p style="font-size: 1.1rem; font-style: italic; color: #555;">(Ich weiß nicht mehr welches deines war...)</p>
+        <p>Wenn du sie einsammelst, finden wir es aber bestimmt wieder!</p>
+        
+        <button onclick="startGameAction()" class="modal-btn">
+           🎁 Geschenke retten!
+        </button>
+    </div>
+
+    <div id="win-screen" class="modal-screen">
+        <h2 style="margin-top: 0; color: var(--accent-color);">Frohe Weihnachten! 🎄</h2>
+        <p>Du bist fantastisch! Du hast alle Geschenke gerettet.</p>
+        <p>Ahh...hier ist ja auch dein Geschenk:</p>
+        
+        <a href="https://www.amazon.de/photos/share/cknGCtFk4Qzee7mr5H5ijfOGXuThL4rM8HIolqGBUXy" target="_blank" class="modal-btn">
+           🎁 Geschenk
+        </a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const livesDisplay = document.getElementById("lives-display");
+        const pauseOverlay = document.getElementById("pause-overlay");
+        const musicBtn = document.getElementById("music-btn");
+        const startScreen = document.getElementById("start-screen");
+
+        // --- MUSIK LOGIK ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let nextNoteTime = 0;
+        let noteIndex = 0;
+        let isMusicPlaying = false;
+        let isWinMusicPlaying = false;
+        let timerID;
+
+        // Jingle Bells (Hintergrund)
+        const melody = [
+            {f:329, d:0.2}, {f:329, d:0.2}, {f:329, d:0.4}, 
+            {f:329, d:0.2}, {f:329, d:0.2}, {f:329, d:0.4}, 
+            {f:329, d:0.2}, {f:392, d:0.2}, {f:261, d:0.2}, {f:293, d:0.2}, {f:329, d:0.8}, 
+            {f:349, d:0.2}, {f:349, d:0.2}, {f:349, d:0.2}, {f:349, d:0.2}, 
+            {f:349, d:0.2}, {f:329, d:0.2}, {f:329, d:0.2}, {f:329, d:0.1}, {f:329, d:0.1},
+            {f:329, d:0.2}, {f:293, d:0.2}, {f:293, d:0.2}, {f:329, d:0.2}, {f:293, d:0.4}, {f:392, d:0.4} 
+        ];
+
+        // We Wish You a Merry Christmas (Siegermelodie)
+        const winMelody = [
+            {f:392, d:0.4}, {f:523, d:0.4}, 
+            {f:523, d:0.2}, {f:587, d:0.2}, {f:523, d:0.2}, {f:493, d:0.2}, 
+            {f:440, d:0.4}, {f:440, d:0.4}, 
+            {f:440, d:0.4}, {f:587, d:0.4}, 
+            {f:587, d:0.2}, {f:659, d:0.2}, {f:587, d:0.2}, {f:523, d:0.2}, 
+            {f:493, d:0.4}, {f:392, d:0.4}, 
+            {f:523, d:0.8} 
+        ];
+
+        function playTone(freq, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle'; 
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function scheduler() {
+            if(!isMusicPlaying && !isWinMusicPlaying) return;
+
+            let currentMelody = isWinMusicPlaying ? winMelody : melody;
+            let tempo = isWinMusicPlaying ? 0.8 : 1.0; 
+
+            while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                let note = currentMelody[noteIndex];
+                playTone(note.f, note.d);
+                
+                nextNoteTime += note.d * tempo; 
+                
+                noteIndex++;
+                if(noteIndex >= currentMelody.length) {
+                    if(isWinMusicPlaying) {
+                        isWinMusicPlaying = false; 
+                        return;
+                    }
+                    noteIndex = 0; 
+                    nextNoteTime += 0.4; 
+                }
+            }
+            timerID = window.setTimeout(scheduler, 25);
+        }
+
+        function startMusic() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            if(!isMusicPlaying) {
+                isMusicPlaying = true;
+                nextNoteTime = audioCtx.currentTime;
+                noteIndex = 0;
+                scheduler();
+                musicBtn.innerText = "🔊";
+            }
+        }
+
+        function stopMusic() {
+            isMusicPlaying = false;
+            clearTimeout(timerID);
+            musicBtn.innerText = "🔇";
+        }
+
+        function playWinMusic() {
+            stopMusic(); 
+            isWinMusicPlaying = true; 
+            nextNoteTime = audioCtx.currentTime + 0.5; 
+            noteIndex = 0;
+            scheduler();
+        }
+        // -------------------------------------
+
+
+        const TILE_SIZE = 28; 
+        const ENEMY_SPEED_MS = 300; 
+        
+        let giftsCollected = 0;
+        let totalGifts = 0;
+        let gameOver = false;
+        let isPaused = false;
+        let gameRunning = false; 
+        let lives = 3;
+
+        let map = [
+            [1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,1,0,0,0,0,0,1],
+            [1,0,1,0,1,0,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,1,1,0,1,0,1],
+            [1,0,0,0,0,1,0,0,0,0,1], 
+            [1,1,1,0,1,1,1,0,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,0,1,0,1,1,0,1],
+            [1,0,0,1,0,0,0,1,0,0,1],
+            [1,0,0,0,0,1,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        let rows = map.length;
+        let cols = map[0].length;
+        canvas.width = cols * TILE_SIZE;
+        canvas.height = rows * TILE_SIZE;
+
+        let player = { x: 1, y: 1 }; 
+        let enemies = [
+            { x: 1, y: 11, lastMoveTime: 0 },
+            { x: 9, y: 11, lastMoveTime: 0 }
+        ];
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        function startGameAction() {
+            startScreen.style.display = "none"; 
+            gameRunning = true;
+            initGame();
+            startMusic(); 
+        }
+
+        function initGame() {
+            totalGifts = 0;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (map[r][c] === 0) totalGifts++;
+                }
+            }
+            if(map[player.y][player.x] === 0) {
+                map[player.y][player.x] = 2; 
+                totalGifts--; 
+            }
+            updateLives();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function togglePause() {
+            if(gameOver || !gameRunning) return;
+            isPaused = !isPaused;
+            if(isPaused) {
+                pauseOverlay.classList.remove("hidden");
+                stopMusic(); 
+            } else {
+                pauseOverlay.classList.add("hidden");
+                startMusic(); 
+            }
+        }
+
+        function resetPositions() {
+            player.x = 1;
+            player.y = 1;
+            enemies[0].x = 1; enemies[0].y = 11;
+            enemies[1].x = 9; enemies[1].y = 11;
+            draw();
+        }
+
+        function updateLives() {
+            let hearts = "";
+            for(let i=0; i<lives; i++) hearts += "❤️";
+            livesDisplay.innerText = hearts;
+        }
+
+        function movePlayer(dx, dy) {
+            if (event && event.preventDefault) event.preventDefault(); 
+            if (gameOver || isPaused || !gameRunning) return; 
+            
+            let newX = player.x + dx;
+            let newY = player.y + dy;
+
+            if (map[newY][newX] !== 1) {
+                player.x = newX;
+                player.y = newY;
+                checkCollection();
+                draw();
+            }
+        }
+
+        function moveEnemy(enemyObj) {
+            let possibleMoves = [];
+            if(map[enemyObj.y-1][enemyObj.x] !== 1) possibleMoves.push({dx:0, dy:-1}); 
+            if(map[enemyObj.y+1][enemyObj.x] !== 1) possibleMoves.push({dx:0, dy:1});  
+            if(map[enemyObj.y][enemyObj.x-1] !== 1) possibleMoves.push({dx:-1, dy:0}); 
+            if(map[enemyObj.y][enemyObj.x+1] !== 1) possibleMoves.push({dx:1, dy:0});  
+            
+            if(possibleMoves.length > 0) {
+                let moved = false;
+                if(player.y < enemyObj.y && Math.random() < 0.6) { 
+                    let upMove = possibleMoves.find(m => m.dy === -1);
+                    if(upMove) {
+                        enemyObj.x += upMove.dx;
+                        enemyObj.y += upMove.dy;
+                        moved = true;
+                    }
+                }
+                if(!moved) {
+                    let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                    enemyObj.x += move.dx;
+                    enemyObj.y += move.dy;
+                }
+            }
+        }
+
+        function checkCollection() {
+            if (map[player.y][player.x] === 0) {
+                map[player.y][player.x] = 2; 
+                giftsCollected++;
+                if (giftsCollected === totalGifts) winGame();
+            }
+        }
+
+        function checkCollision() {
+            let hit = false;
+            enemies.forEach(enemy => {
+                if (player.x === enemy.x && player.y === enemy.y) {
+                    hit = true;
+                }
+            });
+
+            if (hit) {
+                lives--;
+                updateLives();
+                if (lives > 0) {
+                    alert("Autsch! Erwischt. Noch " + lives + " Leben.");
+                    resetPositions();
+                } else {
+                    alert("Oh nein! Keine Leben mehr.");
+                    location.reload();
+                }
+            }
+        }
+
+        function winGame() {
+            gameOver = true;
+            playWinMusic(); 
+            draw();
+            setTimeout(() => {
+                document.getElementById("win-screen").style.display = "block";
+            }, 500);
+        }
+
+        function draw() {
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = (TILE_SIZE * 0.8) + "px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let x = c * TILE_SIZE;
+                    let y = r * TILE_SIZE;
+                    let cell = map[r][c];
+
+                    if (cell === 1) {
+                        ctx.fillStyle = "#144534"; 
+                        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                        ctx.strokeStyle = "#0F3024";
+                        ctx.strokeRect(x,y,TILE_SIZE,TILE_SIZE);
+                    } else if (cell === 0) {
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillText("🎁", x + TILE_SIZE/2, y + TILE_SIZE/2 + 2);
+                    }
+                }
+            }
+            ctx.fillStyle = "#ffffff";
+            // Mrs Claus 🤶
+            ctx.fillText("🤶", player.x * TILE_SIZE + TILE_SIZE/2, player.y * TILE_SIZE + TILE_SIZE/2 + 2);
+            
+            enemies.forEach(enemy => {
+                ctx.fillText("☃️", enemy.x * TILE_SIZE + TILE_SIZE/2, enemy.y * TILE_SIZE + TILE_SIZE/2 + 2);
+            });
+        }
+
+        function gameLoop(timestamp) {
+            if (!gameOver && gameRunning) {
+                if (!isPaused) {
+                    let enemiesMoved = false;
+                    enemies.forEach(enemy => {
+                        if (timestamp - enemy.lastMoveTime > ENEMY_SPEED_MS) {
+                            moveEnemy(enemy);
+                            enemy.lastMoveTime = timestamp;
+                            enemiesMoved = true;
+                        }
+                    });
+
+                    if(enemiesMoved) {
+                        draw();
+                        checkCollision();
+                    }
+                }
+                requestAnimationFrame(gameLoop);
+            }
+        }
+    </script>
+</body>
+</html>
